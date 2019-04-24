@@ -4,6 +4,7 @@ members = [
     "demo/common",
     "demo/magicleap",
     "demo/native",
+    "demo/native-turtle",
     "geometry",
     "gl",
     "gpu",

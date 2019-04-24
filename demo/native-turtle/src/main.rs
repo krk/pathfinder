@@ -1,4 +1,4 @@
-// pathfinder/demo/native/src/main.rs
+// pathfinder/demo/native-turtle/src/main.rs
 //
 // Copyright © 2019 The Pathfinder Project Developers.
 //
