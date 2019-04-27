@@ -1,4 +1,19 @@
-# Pathfinder 3
+# Pathfinder 3 - Turtle Demo
+
+A demo that can display a subset of KTurtle "turtle graphics" is added to the project.
+
+Turtle files are parsed with a [lalrpop](https://github.com/lalrpop/lalrpop) grammar and rendered using Pathfinder 3.
+
+It even has a tiger as its default graphics:
+
+![TIGER](https://github.com/krk/pathfinder/blob/pf3-turtle/tiger.png)
+
+
+* Turtle commands (a subset is supported): https://docs.kde.org/trunk5/en/kdeedu/kturtle/commands.html
+* Grammar: https://github.com/krk/pathfinder/blob/pf3-turtle/uturtle/src/turtle.lalrpop
+* Example turtle file: https://github.com/krk/pathfinder/blob/pf3-turtle/resources/turtle/tiger.turtle
+
+---
 
 Pathfinder 3 is a fast, practical, GPU-based rasterizer for fonts and vector graphics using OpenGL
 and OpenGL ES 3.0+.
