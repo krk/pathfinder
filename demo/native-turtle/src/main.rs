@@ -12,7 +12,7 @@
 
 use jemallocator;
 use nfd::Response;
-use pathfinder_demo::window::{Event, Keycode, SVGPath, View, Window, WindowSize};
+use pathfinder_demo::window::{Event, Keycode, ResourcePath, TurtlePath, View, Window, WindowSize};
 use pathfinder_demo::DemoApp;
 use pathfinder_demo::Options;
 use pathfinder_geometry::basic::point::Point2DI32;
@@ -36,7 +36,8 @@ const DEFAULT_WINDOW_HEIGHT: u32 = 800;
 fn main() {
     let window = WindowImpl::new();
     let window_size = window.size();
-    let options = Options::default();
+    let mut options = Options::default();
+    options.input_path = ResourcePath::Turtle(TurtlePath::Default);
     let mut app = DemoApp::new(window, window_size, options);
 
     while !app.should_exit {
@@ -125,7 +126,7 @@ impl Window for WindowImpl {
     }
 
     fn present_open_svg_dialog(&mut self) {
-        if let Ok(Response::Okay(path)) = nfd::open_file_dialog(Some("svg"), None) {
+        if let Ok(Response::Okay(path)) = nfd::open_file_dialog(Some("turtle"), None) {
             self.selected_file = Some(PathBuf::from(path));
             WindowImpl::push_user_event(self.open_svg_message_type, 0);
         }
@@ -153,7 +154,7 @@ impl WindowImpl {
 
                 window = sdl_video
                     .window(
-                        "Pathfinder Demo",
+                        "Pathfinder Turtle Demo",
                         DEFAULT_WINDOW_WIDTH,
                         DEFAULT_WINDOW_HEIGHT,
                     )
@@ -214,7 +215,7 @@ impl WindowImpl {
     fn convert_sdl_event(&self, sdl_event: SDLEvent) -> Option<Event> {
         match sdl_event {
             SDLEvent::User { type_, .. } if type_ == self.open_svg_message_type => Some(
-                Event::OpenSVG(SVGPath::Path(self.selected_file.clone().unwrap())),
+                Event::OpenTurtle(TurtlePath::Path(self.selected_file.clone().unwrap())),
             ),
             SDLEvent::User { type_, code, .. } => Some(Event::User {
                 message_type: type_,

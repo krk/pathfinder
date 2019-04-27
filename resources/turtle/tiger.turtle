@@ -1,0 +1,85 @@
+penwidth 0.7
+
+direction -90
+pendown
+turnright
+forward 60
+penup
+backward 30
+pendown
+turnright
+forward 60
+penup
+
+pencolor 65, 55, 38
+direction -90
+go 80 0
+turnright
+turnright
+pendown
+forward 60
+penup
+
+pencolor 121, 69, 29
+go 160 20
+pendown
+direction -135
+forward 28.28
+direction -180
+forward 20
+direction -225
+forward 28.28
+direction 90
+forward 20
+direction 45
+forward 28.28
+direction 0
+forward 35
+turnleft
+forward 20
+turnleft
+forward 20
+penup
+
+pencolor 215, 98, 26
+direction 90
+go 170 0
+pendown
+forward 60
+turnleft
+forward 30
+penup
+backward 30
+turnleft
+forward 30
+turnright
+pendown
+forward 20
+penup
+backward 20
+turnleft
+forward 30
+turnright
+pendown
+forward 30
+penup
+
+pencolor 253, 141, 50
+direction 90
+go 210 0
+pendown
+forward 60
+backward 30
+turnleft
+forward 30
+turnleft
+forward 30
+turnleft
+forward 30
+penup
+turnleft
+forward 30
+pendown
+direction 45
+forward 42.42
+penup

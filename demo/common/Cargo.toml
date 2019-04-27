@@ -33,5 +33,11 @@ path = "../../simd"
 [dependencies.pathfinder_svg]
 path = "../../svg"
 
+[dependencies.pathfinder_turtle]
+path = "../../turtle"
+
 [dependencies.pathfinder_ui]
 path = "../../ui"
+
+[dependencies.uturtle]
+path = "../../uturtle"

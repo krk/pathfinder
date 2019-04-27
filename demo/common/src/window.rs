@@ -55,6 +55,7 @@ pub enum Event {
     Look { pitch: f32, yaw: f32 },
     CameraTransforms(Vec<CameraTransform>),
     OpenSVG(SVGPath),
+    OpenTurtle(TurtlePath),
     User { message_type: u32, message_data: u32 },
 }
 
@@ -98,4 +99,17 @@ pub enum SVGPath {
     Default,
     Resource(String),
     Path(PathBuf),
+}
+
+#[derive(Clone)]
+pub enum TurtlePath {
+    Default,
+    Resource(String),
+    Path(PathBuf),
+}
+
+#[derive(Clone)]
+pub enum ResourcePath {
+    SVG(SVGPath),
+    Turtle(TurtlePath),
 }

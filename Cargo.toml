@@ -11,8 +11,10 @@ members = [
     "renderer",
     "simd",
     "svg",
+    "turtle",
     "ui",
     "utils/area-lut",
     "utils/gamma-lut",
-    "utils/svg-to-skia"
+    "utils/svg-to-skia",
+    "uturtle"
 ]

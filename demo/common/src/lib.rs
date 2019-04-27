@@ -12,7 +12,7 @@
 
 use crate::device::{GroundLineVertexArray, GroundProgram, GroundSolidVertexArray};
 use crate::ui::{DemoUI, UIAction};
-use crate::window::{CameraTransform, Event, Keycode, SVGPath, View, Window, WindowSize};
+use crate::window::{CameraTransform, Event, Keycode, SVGPath, ResourcePath, TurtlePath, View, Window, WindowSize};
 use clap::{App, Arg};
 use image::ColorType;
 use pathfinder_geometry::basic::point::{Point2DF32, Point2DI32, Point3DF32};
@@ -31,6 +31,7 @@ use pathfinder_renderer::gpu_data::RenderCommand;
 use pathfinder_renderer::post::{DEFRINGING_KERNEL_CORE_GRAPHICS, STEM_DARKENING_FACTORS};
 use pathfinder_renderer::scene::{Scene, SceneDescriptor};
 use pathfinder_svg::BuiltSVG;
+use pathfinder_turtle::BuiltTurtle;
 use pathfinder_ui::{MousePosition, UIEvent};
 use rayon::ThreadPoolBuilder;
 use std::f32::consts::FRAC_PI_4;
@@ -41,12 +42,15 @@ use std::iter;
 use std::panic::{self, AssertUnwindSafe};
 use std::path::PathBuf;
 use std::process;
+use std::str;
 use std::sync::mpsc::{self, Receiver, Sender, SyncSender};
 use std::thread;
 use std::time::{Duration, Instant};
 use usvg::{Options as UsvgOptions, Tree};
+use uturtle::Parser as TurtleParser;
 
 static DEFAULT_SVG_VIRTUAL_PATH: &'static str = "svg/Ghostscript_Tiger.svg";
+static DEFAULT_TURTLE_VIRTUAL_PATH: &'static str = "turtle/tiger.turtle";
 
 const MOUSELOOK_ROTATION_SPEED: f32 = 0.007;
 const CAMERA_VELOCITY: f32 = 0.02;
@@ -124,10 +128,20 @@ impl<W> DemoApp<W> where W: Window {
         thread_pool_builder = window.adjust_thread_pool_settings(thread_pool_builder);
         thread_pool_builder.build_global().unwrap();
 
-        let built_svg = load_scene(resources, &options.input_path);
-        let message = get_svg_building_message(&built_svg);
-        let scene_view_box = built_svg.scene.view_box;
-        let monochrome_scene_color = built_svg.scene.monochrome_color();
+        let (scene, message) = match &options.input_path{
+            ResourcePath::SVG(svg_path) =>{
+                let built_svg = load_scene(resources, &svg_path);
+                let message = get_svg_building_message(&built_svg);
+                (built_svg.scene, message)
+            }
+            ResourcePath::Turtle(turtle_path)=>{
+                let built_turtle = load_turtle_scene(resources, &turtle_path);
+                let message = get_turtle_building_message(&built_turtle);
+                (built_turtle.scene, message)
+            }
+        };
+        let scene_view_box = scene.view_box;
+        let monochrome_scene_color = scene.monochrome_color();
 
         let viewport = window.viewport(options.mode.view(0));
         let dest_framebuffer = DestFramebuffer::Default {
@@ -136,7 +150,7 @@ impl<W> DemoApp<W> where W: Window {
         };
 
         let renderer = Renderer::new(device, resources, dest_framebuffer);
-        let scene_thread_proxy = SceneThreadProxy::new(built_svg.scene, options.clone());
+        let scene_thread_proxy = SceneThreadProxy::new(scene, options.clone());
         scene_thread_proxy.set_drawable_size(viewport.size());
 
         let camera = Camera::new(options.mode, scene_view_box, viewport.size());
@@ -370,6 +384,19 @@ impl<W> DemoApp<W> where W: Window {
                     self.monochrome_scene_color = built_svg.scene.monochrome_color();
                     self.camera = Camera::new(self.ui.mode, self.scene_view_box, viewport_size);
                     self.scene_thread_proxy.load_scene(built_svg.scene, viewport_size);
+                    self.dirty = true;
+                }
+                Event::OpenTurtle(ref turtle_path) => {
+                    let built_turtle =
+                        load_turtle_scene(self.window.resource_loader(), turtle_path);
+                    self.ui.message = get_turtle_building_message(&built_turtle);
+
+                    let viewport_size = self.window.viewport(self.ui.mode.view(0)).size();
+                    self.scene_view_box = built_turtle.scene.view_box;
+                    self.monochrome_scene_color = built_turtle.scene.monochrome_color();
+                    self.camera = Camera::new(self.ui.mode, self.scene_view_box, viewport_size);
+                    self.scene_thread_proxy
+                        .load_scene(built_turtle.scene, viewport_size);
                     self.dirty = true;
                 }
                 Event::User { message_type: event_id, message_data: expected_epoch } if
@@ -818,7 +845,7 @@ fn build_scene(scene: &Scene,
 pub struct Options {
     pub jobs: Option<usize>,
     pub mode: Mode,
-    pub input_path: SVGPath,
+    pub input_path: ResourcePath,
     pub ui: UIVisibility,
     pub background_color: BackgroundColor,
     hidden_field_for_future_proofing: (),
@@ -829,7 +856,7 @@ impl Default for Options {
         Options {
             jobs: None,
             mode: Mode::TwoD,
-            input_path: SVGPath::Default,
+            input_path: ResourcePath::SVG(SVGPath::Default),
             ui: UIVisibility::All,
             background_color: BackgroundColor::Light,
             hidden_field_for_future_proofing: (),
@@ -896,7 +923,7 @@ impl Options {
         }
 
         if let Some(path) = matches.value_of("INPUT") {
-            self.input_path = SVGPath::Path(PathBuf::from(path));
+            self.input_path = ResourcePath::SVG(SVGPath::Path(PathBuf::from(path)));
         };
     }
 
@@ -945,6 +972,26 @@ fn load_scene(resource_loader: &dyn ResourceLoader, input_path: &SVGPath) -> Bui
     };
 
     BuiltSVG::from_tree(Tree::from_data(&data, &UsvgOptions::default()).unwrap())
+}
+
+fn load_turtle_scene(resource_loader: &dyn ResourceLoader, input_path: &TurtlePath) -> BuiltTurtle {
+    let mut data;
+    match *input_path {
+        TurtlePath::Default => data = resource_loader.slurp(DEFAULT_TURTLE_VIRTUAL_PATH).unwrap(),
+        TurtlePath::Resource(ref name) => data = resource_loader.slurp(name).unwrap(),
+        TurtlePath::Path(ref path) => {
+            data = vec![];
+            File::open(path).unwrap().read_to_end(&mut data).unwrap();
+        }
+    };
+
+    let s = match str::from_utf8(&data) {
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+    };
+
+    let t = TurtleParser::new().parse(s).unwrap();
+    BuiltTurtle::from_ast(t)
 }
 
 fn center_of_window(window_size: &WindowSize) -> Point2DF32 {
@@ -1068,6 +1115,16 @@ fn get_svg_building_message(built_svg: &BuiltSVG) -> String {
         return String::new();
     }
     format!("Warning: These features in the SVG are unsupported: {}.", built_svg.result_flags)
+}
+
+fn get_turtle_building_message(built_turtle: &BuiltTurtle) -> String {
+    if built_turtle.result_flags.is_empty() {
+        return String::new();
+    }
+    format!(
+        "Warning: These features in the Turtle are unsupported: {}.",
+        built_turtle.result_flags
+    )
 }
 
 fn emit_message<W>(ui: &mut DemoUI<GLDevice>,

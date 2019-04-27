@@ -1,0 +1,13 @@
+[package]
+name = "uturtle"
+version = "0.1.0"
+authors = ["Kerem Kat <keremkat@gmail.com>"]
+edition = "2018"
+build = "build.rs" # LALRPOP preprocessing
+
+[dependencies]
+lalrpop-util = "0.16.3"
+regex = "0.2.0"
+
+[build-dependencies]
+lalrpop = "0.16.3"

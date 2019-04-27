@@ -1,0 +1,11 @@
+penwidth 0.2
+pendown
+forward 100
+turnright
+forward 100
+turnright
+forward 100
+turnright
+forward 100
+turnright
+penup
